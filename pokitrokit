@@ -1,3 +1,66 @@
 #!/usr/bin/env ruby
 
+require 'socket'
 
+def commander client
+  disconnect = false
+  die = false
+  timestamp = Time.now + 10
+
+  until disconnect do
+    puts "[#{Time.now.ctime}] STARTING COMMAND LOOP"
+    client.print '> '
+
+    command = client.gets("\r\n").chomp("\r\n")
+
+    if command && !command.empty? then
+      puts "[#{Time.now.ctime}] RECIEVED COMMAND: #{command}"
+      client.puts "[#{Time.now.ctime}] RECIEVED COMMAND: #{command}"
+
+      case command
+      when /exit|quit|disconnect/ then
+        client.puts "[#{Time.now.ctime}] DISCONNECTING YOU"
+        puts "[#{Time.now.ctime}] CLIENT REQUESTED DISCONNECT"
+        disconnect = true
+      when /die/ then
+        client.puts "[#{Time.now.ctime}] KILLING SERVER"
+        puts "[#{Time.now.ctime}] CLIENT REQUESTED DIE"
+        disconnect = true
+        die = true
+      end
+    else
+      if timestamp < Time.now then
+        timestamp = Time.now + 10
+        client.puts "[#{Time.now.ctime}] TIMESTAMP"
+        puts "[#{Time.now.ctime}] TIMESTAMP"
+      else
+      end
+    end
+  end
+  puts "[#{Time.now.ctime}] EXITING COMMAND LOOP"
+
+  die
+end
+
+def connector server
+  die = false
+
+  until die do
+    puts "[#{Time.now.ctime}] STARTING CONNECTOR LOOP"
+
+    puts "[#{Time.now.ctime}] WAITING FOR CLIENT"
+    client = server.accept
+    client.puts "[#{Time.now.ctime}] HELLO"
+    puts "[#{Time.new.ctime}] CLIENT CONNECTED: #{client.connect_address.getnameinfo.first} #{client.connect_address.ip_address}"
+
+    die = commander client
+
+    client.puts "[#{Time.now.ctime}] GOODBYE"
+    client.close
+    puts "[#{Time.new.ctime}] CLIENT DISCONNECTED"
+  end
+  puts "[#{Time.now.ctime}] EXITING CONNECTOR LOOP"
+end
+
+server = TCPServer.open 2000
+connector server
